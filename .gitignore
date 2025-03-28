@@ -1,2 +1,5 @@
 __pycache__
 venv
+config.json
+product_data.json
+debug_before_prices.html
