@@ -1,0 +1,8 @@
+{
+	"DEEPL_AUTH_KEY": "98ae0d75-7785-4f60-a8d4-64a869672fa5:fx",
+	"GECKODRIVER_PATH": "./geckodriver.exe",
+	"FIREFOX_BINARY": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+	"FIREFOX_PROFILE": "C:\\Users\\Rafał\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\52fg9yry.kopiowanie",
+	"CRM_URL": "https://adcl8198889.tricoma-netzwerk.de/cmssystem/",
+	"SHOP_URL": "https://noi-shop.ultra-media.de/admin#/sw/dashboard/index"
+}
