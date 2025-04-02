@@ -274,7 +274,7 @@ class CRMDownloader:
         try:
             logging.info("Czekam na element 'Shopware 6'.")
             shopware6 = WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable((By.ID, "list_element_20"))
+                EC.element_to_be_clickable((By.ID, "list_element_26")) # christine: 20, noihamburg: 26
             )
             self.driver.execute_script("arguments[0].scrollIntoView(true);", shopware6)
             self.driver.execute_script("arguments[0].click();", shopware6)

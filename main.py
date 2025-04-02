@@ -26,9 +26,6 @@ def main():
     ui = UserInterface(facade)
     while True:
         ui.execute_choice()
-        cont = input("Czy chcesz wykonać kolejną operację? (t/n): ")
-        if cont.lower() != "t":
-            break
 
 if __name__ == "__main__":
     main()

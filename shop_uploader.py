@@ -301,10 +301,11 @@ class ShopUploader:
             logging.error("Błąd przy wyszukiwaniu produktu: %s", e)
             return False
 
-    def run_sequence(self, product_data):
+    def go_to_shop(self, product_data):
         self.switch_to_shop()
         self.search_product(product_data)
-        input("\nNaciśnij Enter, aby przejść do wysyłania danych do sklepu...")
+
+    def run_sequence(self, product_data):
         self.go_to_tab("advanced pricing")
         self.select_conditional_rule()
         self.click_add_pricing_rule()

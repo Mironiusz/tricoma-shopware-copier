@@ -20,6 +20,10 @@ class ProcessFacade:
         self.crm_downloader.display_final_info(product_data)
         self.crm_downloader.save_product_data(product_data)
         # Upload do sklepu
+        self.shop_uploader.go_to_shop(product_data)
+
+        input("\nNaciśnij Enter, aby przejść do wysyłania danych do sklepu...")
+
         self.shop_uploader.run_sequence(product_data)
         return product_data
 
@@ -35,7 +39,15 @@ class ProcessFacade:
         self.crm_downloader.save_product_data(product_data)
         return product_data
 
+    def get_data(self):
+        return self.crm_downloader.load_product_data()
+
+    def go_to_shop(self):
+        product_data = self.get_data()
+        self.shop_uploader.go_to_shop(product_data)
+        return product_data
+
     def run_upload_process(self):
-        product_data = self.crm_downloader.load_product_data()
+        product_data = self.get_data()
         self.shop_uploader.run_sequence(product_data)
         return product_data
