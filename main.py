@@ -3,6 +3,7 @@ import json
 from driver_initializer import DriverInitializer
 from facade import ProcessFacade
 from interface import UserInterface
+from log_in import LogIn
 
 def load_config(filename="config.json"):
     try:
@@ -19,10 +20,21 @@ def main():
     driver_init = DriverInitializer(config)
     driver = driver_init.init_driver()
     facade = ProcessFacade(driver, config)
-    # Logowanie w CRM i Sklepie
+
+    # Otwarcie stron
+
     crm_url = config.get("CRM_URL", "https://default-crm-url")
     shop_url = config.get("SHOP_URL", "https://default-shop-url")
     facade.crm_downloader.wait_for_login(crm_url, shop_url)
+
+    # Logowanie
+
+    tricoma_logins = config.get("TRICOMA_LOGINS", [])
+    shopware_logins = config.get("SHOPWARE_LOGINS", [])
+
+    log_in = LogIn(driver, tricoma_logins, shopware_logins)
+    log_in.log_in()
+
     ui = UserInterface(facade)
     while True:
         ui.execute_choice()

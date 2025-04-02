@@ -44,8 +44,48 @@ class ShopUploader:
             logging.error("Błąd przy przełączaniu zakładki %s: %s", tab, e)
             return False
 
+    def dump_page_source(self, file_path="page_dump.html"):
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(self.driver.page_source)
+            print(f"Page source zapisany do pliku: {file_path}")
+        except Exception as e:
+            print(f"Błąd podczas zapisywania page source: {e}")
+
+    def remove_rules_added(self):
+        try:
+            # Czekamy, aż znajdą się przynajmniej jeden przycisk
+            buttons = WebDriverWait(self.driver, 3).until(
+                lambda d: d.find_elements(By.XPATH, "//button[.//span[text()='Delete pricing rule']]")
+            )
+            count = len(buttons)
+            logging.info("Znaleziono %s przycisków do usunięcia reguły cenowej.", count)
+            if count == 0:
+                return True
+
+            # Iterujemy i klikamy przycisk (pobierając aktualną listę przy każdym kroku)
+            for i in range(count):
+                buttons = self.driver.find_elements(By.XPATH, "//button[.//span[text()='Delete pricing rule']]")
+                if buttons:
+                    button_to_remove = buttons[0]
+                    self.driver.execute_script("arguments[0].scrollIntoView(true);", button_to_remove)
+                    self.driver.execute_script("arguments[0].click();", button_to_remove)
+                    logging.info("Kliknięto przycisk do usunięcia reguły cenowej (%s/%s).", i + 1, count)
+                    # Opcjonalnie: krótka przerwa, aby DOM mógł się zaktualizować
+                    time.sleep(0.5)
+                else:
+                    break
+            return True
+
+        except Exception as e:
+            self.dump_page_source()
+            logging.error("Błąd przy sprawdzaniu dodanych reguł: %s", e)
+            return False
+
+
     def select_conditional_rule(self, rule_text="Händler"):
         try:
+            self.dump_page_source("debug_before_prices.html")
             logging.info("Klikam w element wyboru reguły warunkowej.")
             selection_div = WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((
@@ -82,6 +122,36 @@ class ShopUploader:
             logging.error("Błąd przy klikaniu 'Add pricing rule': %s", e)
             return False
 
+    def update_handler_preis(self, product_data):
+        try:
+            handler_preis = product_data.get("handler_preis")
+            if handler_preis is None:
+                logging.error("Brak ceny 'handler_preis' w product_data.")
+                return False
+
+            # Czekamy, aż pojawią się inputy
+            inputs = WebDriverWait(self.driver, 20).until(
+                lambda d: d.find_elements(By.XPATH, "//input[@name='sw-price-field-net' and @aria-label='Euro']")
+            )
+            logging.info("Znaleziono %s inputów do aktualizacji ceny.", len(inputs))
+
+            # Iterujemy po inputach – modyfikujemy tylko te, które mają już wpisaną wartość
+            for input_field in inputs:
+                current_value = input_field.get_attribute("value")
+                if current_value and current_value.strip() != "":
+                    input_field.clear()
+                    input_field.send_keys(str(handler_preis))
+                    logging.info("Zaktualizowano input (wcześniejsza wartość: %s) na: %s", current_value, handler_preis)
+                else:
+                    logging.info("Pominięto input, ponieważ nie ma w nim wpisanej wartości.")
+
+            return True
+
+        except Exception as e:
+            logging.error("Błąd przy aktualizacji ceny 'handler_preis': %s", e)
+            return False
+
+
     def select_pricing_rule_in_new_card(self, rule_text="Händler Ausland"):
         try:
             logging.info("Przechodzę do pola wyboru w nowej regule cenowej.")
@@ -109,17 +179,24 @@ class ShopUploader:
         try:
             endkunde_price = float(product_data.get("endkunde_preis", 0))
             gross_price = round(endkunde_price * 1.19, 2)
-            logging.info("Obliczona gross price: %s", gross_price)
+
+            adjusted_price = round(gross_price / 0.05) * 0.05
+
+            adjusted_price = round(adjusted_price, 2)
+
+            logging.info("Obliczona cena: %s, zaokrąglona do najbliższej wielokrotności 0.05: %s", gross_price, adjusted_price)
+
             gross_field = WebDriverWait(self.driver, 20).until(
                 EC.visibility_of_element_located((By.ID, "sw-price-field-gross"))
             )
             gross_field.clear()
-            gross_field.send_keys(str(gross_price))
-            logging.info("Gross price ustawiony na: %s", gross_price)
+            gross_field.send_keys(str(adjusted_price))
+            logging.info("Gross price ustawiony na: %s", adjusted_price)
             return True
         except Exception as e:
             logging.error("Błąd przy aktualizacji pola gross price: %s", e)
             return False
+
 
     def update_scaled_values(self, product_data):
         try:
@@ -306,10 +383,13 @@ class ShopUploader:
         self.search_product(product_data)
 
     def run_sequence(self, product_data):
+        self.switch_to_shop()
         self.go_to_tab("advanced pricing")
+        self.remove_rules_added()
         self.select_conditional_rule()
         self.click_add_pricing_rule()
         self.select_pricing_rule_in_new_card()
+        self.update_handler_preis(product_data)
         self.go_to_tab("general")
         self.update_price_fields(product_data)
         self.update_scaled_values(product_data)

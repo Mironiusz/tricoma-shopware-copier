@@ -1,6 +1,7 @@
 import logging
 import time
 import json
+from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
@@ -39,7 +40,6 @@ class CRMDownloader:
         self.driver.execute_script("window.open(arguments[0], '_blank');", shop_url)
         tabs = self.driver.window_handles
         logging.info("Otwartych zakładek: %s", tabs)
-        input("Zaloguj się w obu stronach oraz przejdź do wybranego produktu w CRM, następnie naciśnij Enter...")
 
     def switch_to_crm(self):
         tabs = self.driver.window_handles
@@ -113,6 +113,14 @@ class CRMDownloader:
         except Exception as e:
             logging.error("Błąd przy klikaniu przycisku zapisu: %s", e)
 
+    def remove_inline_styles(self, html):
+        soup = BeautifulSoup(html, "html.parser")
+        for tag in soup.find_all(True):
+            for attr in ["style", "data-mce-style"]:
+                if tag.has_attr(attr):
+                    del tag[attr]
+        return str(soup)
+
     def get_product_details(self):
         product_data = {}
         try:
@@ -142,6 +150,7 @@ class CRMDownloader:
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
             beschreibung = body_elem.get_attribute("innerHTML")
+            beschreibung = self.remove_inline_styles(beschreibung)
             product_data["beschreibung"] = beschreibung
             logging.info("Opis produktu pobrany.")
             self.driver.switch_to.parent_frame()
@@ -247,9 +256,9 @@ class CRMDownloader:
             container = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, "//div[@class='tri_box'][p[contains(., 'Weitere Verkaufspreise (€)')]]"))
             )
-            html = self.driver.page_source
-            with open("debug_before_prices.html", "w", encoding="utf-8") as f:
-                f.write(html)
+            # html = self.driver.page_source
+            # with open("debug_before_prices.html", "w", encoding="utf-8") as f:
+            #     f.write(html)
             table = container.find_element(By.XPATH, ".//div[@class='content']//table[contains(@class, 'table_listing')]")
             handler_row = table.find_element(By.XPATH, ".//tr[td[contains(., 'Händler (H)')]]")
             handler_int = handler_row.find_element(By.XPATH, ".//input[contains(@class, 'zahlenfeld_vorkomma')]").get_attribute("value")
