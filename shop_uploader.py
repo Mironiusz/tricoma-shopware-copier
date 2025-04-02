@@ -52,9 +52,50 @@ class ShopUploader:
         except Exception as e:
             print(f"Błąd podczas zapisywania page source: {e}")
 
+    def update_manufacturer_selection(self):
+        try:
+            logging.info("Aktualizuję wybór producenta (manufacturer).")
+            manufacturer_container = WebDriverWait(self.driver, 20).until(
+                EC.visibility_of_element_located((By.ID, "manufacturerId"))
+            )
+            container = manufacturer_container.find_element(
+                By.CSS_SELECTOR, "div.sw-entity-single-select__selection"
+            )
+            current_value = container.find_element(
+                By.CSS_SELECTOR, "div.sw-entity-single-select__selection-text"
+            ).text.strip()
+
+            if current_value == "Scherer Voigt GbR":
+                logging.info("Producent już jest ustawiony na 'Scherer Voigt GbR'.")
+                return True
+
+            self.driver.execute_script("arguments[0].scrollIntoView(true);", container)
+            self.driver.execute_script("arguments[0].click();", container)
+            logging.info("Kliknięto pole producenta - otwieram listę opcji.")
+
+            options_container = WebDriverWait(self.driver, 20).until(
+                EC.visibility_of_element_located(
+                    (By.CSS_SELECTOR, "div.sw-select-result-list__content")
+                )
+            )
+            options_list = options_container.find_element(
+                By.CSS_SELECTOR, "ul.sw-select-result-list__item-list"
+            )
+            first_option = WebDriverWait(options_list, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "li.sw-select-option--0"))
+            )
+            self.driver.execute_script("arguments[0].scrollIntoView(true);", first_option)
+            self.driver.execute_script("arguments[0].click();", first_option)
+            logging.info("Wybrano producenta: 'Scherer Voigt GbR'.")
+            return True
+
+        except Exception as e:
+            logging.error("Błąd przy aktualizacji producenta: %s", e)
+            return False
+
+
     def remove_rules_added(self):
         try:
-            # Czekamy, aż znajdą się przynajmniej jeden przycisk
             buttons = WebDriverWait(self.driver, 3).until(
                 lambda d: d.find_elements(By.XPATH, "//button[.//span[text()='Delete pricing rule']]")
             )
@@ -63,7 +104,6 @@ class ShopUploader:
             if count == 0:
                 return True
 
-            # Iterujemy i klikamy przycisk (pobierając aktualną listę przy każdym kroku)
             for i in range(count):
                 buttons = self.driver.find_elements(By.XPATH, "//button[.//span[text()='Delete pricing rule']]")
                 if buttons:
@@ -71,7 +111,6 @@ class ShopUploader:
                     self.driver.execute_script("arguments[0].scrollIntoView(true);", button_to_remove)
                     self.driver.execute_script("arguments[0].click();", button_to_remove)
                     logging.info("Kliknięto przycisk do usunięcia reguły cenowej (%s/%s).", i + 1, count)
-                    # Opcjonalnie: krótka przerwa, aby DOM mógł się zaktualizować
                     time.sleep(0.5)
                 else:
                     break
@@ -243,6 +282,28 @@ class ShopUploader:
             container = WebDriverWait(self.driver, 20).until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, "div.sw-product-category-form__visibility_field"))
             )
+
+            actions = ActionChains(self.driver)
+            while True:
+                selected_items = container.find_elements(
+                    By.CSS_SELECTOR, "ul.sw-select-selection-list li.sw-select-selection-list__item-holder"
+                )
+                if not selected_items:
+                    break
+                for item in selected_items:
+                    try:
+                        actions.move_to_element(item).perform()
+                        time.sleep(0.2)
+                        remove_button = item.find_element(By.CSS_SELECTOR, "button.sw-label__dismiss")
+                        self.driver.execute_script("arguments[0].scrollIntoView(true);", remove_button)
+                        remove_button.click()
+                        logging.info("Usunięto wybrany kanał.")
+                        time.sleep(0.2)
+                    except Exception as e:
+                        logging.error("Błąd przy usuwaniu kanału: %s", e)
+            logging.info("Lista wybranych kanałów została wyczyszczona.")
+
+
             expand_button = container.find_element(
                 By.CSS_SELECTOR, "div.sw-select__selection-indicators span.sw-select__select-indicator-expand"
             )
@@ -254,6 +315,7 @@ class ShopUploader:
             )
             options_list = result_list.find_element(By.CSS_SELECTOR, "ul.sw-select-result-list__item-list")
             option_selectors = [
+                "li.sw-select-result.sw-select-option--0",
                 "li.sw-select-result.sw-select-option--1",
                 "li.sw-select-result.sw-select-option--2",
                 "li.sw-select-result.sw-select-option--3"
@@ -391,6 +453,7 @@ class ShopUploader:
         self.select_pricing_rule_in_new_card()
         self.update_handler_preis(product_data)
         self.go_to_tab("general")
+        self.update_manufacturer_selection()
         self.update_price_fields(product_data)
         self.update_scaled_values(product_data)
         self.update_sales_channels_selection()
