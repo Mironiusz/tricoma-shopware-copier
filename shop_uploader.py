@@ -117,14 +117,12 @@ class ShopUploader:
             return True
 
         except Exception as e:
-            self.dump_page_source()
-            logging.error("Błąd przy sprawdzaniu dodanych reguł: %s", e)
+            logging.info("Nie znaleziono reguł: %s", e)
             return False
 
 
     def select_conditional_rule(self, rule_text="Händler"):
         try:
-            self.dump_page_source("debug_before_prices.html")
             logging.info("Klikam w element wyboru reguły warunkowej.")
             selection_div = WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((

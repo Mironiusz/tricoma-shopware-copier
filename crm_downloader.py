@@ -366,8 +366,49 @@ class CRMDownloader:
             self.driver.switch_to.default_content()
             raise
 
+    def open_product(self, product_name):
+        logging.info("open_product: wyszukuję '%s'", product_name)
+        self.switch_to_crm()
+        self.driver.switch_to.default_content()
+
+        inp = WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.ID, "tricoma_maneta_search"))
+        )
+
+        try:
+            self.driver.execute_script("arguments[0].click();", inp)
+        except Exception:
+            logging.warning("open_product: JS click nie zadziałał, spróbuję normalnego click()")
+            inp.click()
+
+        time.sleep(0.5)
+
+        inp = WebDriverWait(self.driver, 5).until(
+            EC.element_to_be_clickable((By.ID, "tricoma_maneta_search"))
+        )
+        inp.clear()
+        inp.send_keys(product_name)
+        logging.info("open_product: wpisano w wyszukiwarkę '%s'", product_name)
+
+        result_box = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located((By.ID, "maneta_search_window"))
+        )
+
+        first_link = result_box.find_element(By.CSS_SELECTOR, "a.tricoma_list_element_link")
+        self.driver.execute_script("arguments[0].click();", first_link)
+        logging.info("open_product: kliknięto pierwszy wynik")
+
+        time.sleep(3)
+
+        self.switch_to_product_iframe()
+        self.wait_for_product_page()
+        logging.info("open_product: strona produktu załadowana")
+
+
     def run_sequence(self):
         self.switch_to_crm()
+        self.switch_to_product_iframe()
+        self.click_produktdaten()
         self.switch_to_product_iframe()
         self.wait_for_product_page()
         self.fill_product_data()

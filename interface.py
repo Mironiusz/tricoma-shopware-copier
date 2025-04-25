@@ -9,7 +9,8 @@ class UserInterface:
         print("1 - Pełny proces (Download, Translate, Upload)")
         print("2 - Tylko Download i Translate")
         print("3 - Tylko Upload")
-        choice = input("Wprowadź wybór (1/2/3): ")
+        print("4 - Przetwarzaj listę produktów z pliku")
+        choice = input("Wprowadź wybór (1/2/3/4): ")
         return choice
 
     def execute_choice(self):
@@ -27,5 +28,11 @@ class UserInterface:
             self.facade.go_to_shop()
         elif choice == "3":
             self.facade.run_upload_process()
+        elif choice == "4":
+            filename = "products.txt"
+            try:
+                self.facade.run_batch_process(filename)
+            except Exception:
+                logging.error("Nie udało się przetworzyć pliku %s", filename)
         else:
             logging.error("Nieprawidłowy wybór.")
