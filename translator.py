@@ -9,10 +9,10 @@ class Translator:
     def translate_text(self, text, target_lang):
         try:
             result = self.translator.translate_text(text, target_lang=target_lang, tag_handling="html")
-            logging.info("Tłumaczenie na %s zakończone.", target_lang)
+            logging.info("Translation to %s completed.", target_lang)
             return result.text
         except Exception as e:
-            logging.error("Błąd podczas tłumaczenia na %s: %s", target_lang, e)
+            logging.error("Error during translation to %s: %s", target_lang, e)
             return ""
 
     def translate_product(self, product_data):
@@ -21,5 +21,5 @@ class Translator:
             product_data["beschreibung_en"] = self.translate_text(description, "EN-GB")
             product_data["beschreibung_fr"] = self.translate_text(description, "FR")
         else:
-            logging.warning("Brak opisu produktu do tłumaczenia.")
+            logging.warning("No product description to translate.")
         return product_data

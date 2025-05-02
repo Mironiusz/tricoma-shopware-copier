@@ -5,12 +5,12 @@ class UserInterface:
         self.facade = facade
 
     def show_menu(self):
-        print("Wybierz operację:")
-        print("1 - Pełny proces (Download, Translate, Upload)")
-        print("2 - Tylko Download i Translate")
-        print("3 - Tylko Upload")
-        print("4 - Przetwarzaj listę produktów z pliku")
-        choice = input("Wprowadź wybór (1/2/3/4): ")
+        print("Choose an operation:")
+        print("1 - Full process (Download, Translate, Upload)")
+        print("2 - Download and Translate only")
+        print("3 - Upload only")
+        print("4 - Process product list from file")
+        choice = input("Enter your choice (1/2/3/4): ")
         return choice
 
     def execute_choice(self):
@@ -33,6 +33,6 @@ class UserInterface:
             try:
                 self.facade.run_batch_process(filename)
             except Exception:
-                logging.error("Nie udało się przetworzyć pliku %s", filename)
+                logging.error("Failed to process file %s", filename)
         else:
-            logging.error("Nieprawidłowy wybór.")
+            logging.error("Invalid choice.")

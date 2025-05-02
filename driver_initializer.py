@@ -8,7 +8,7 @@ class DriverInitializer:
         self.config = config
 
     def init_driver(self):
-        logging.info("Inicjalizacja Firefoksa z geckodriverem i dedykowanym profilem.")
+        logging.info("Initializing Firefox with geckodriver and dedicated profile.")
         service = Service(self.config["GECKODRIVER_PATH"])
         options = Options()
         options.binary_location = self.config["FIREFOX_BINARY"]

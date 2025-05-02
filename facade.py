@@ -14,17 +14,17 @@ class ProcessFacade:
         self.translator = Translator(config)
 
     def run_full_process(self):
-        # Download danych z CRM
+        # Download data from CRM
         product_data = self.crm_downloader.run_sequence()
         self.crm_downloader.save_product_data(product_data)
-        # Tłumaczenie opisu
+        # Translate description
         product_data = self.translator.translate_product(product_data)
         self.crm_downloader.display_final_info(product_data)
         self.crm_downloader.save_product_data(product_data)
-        # Upload do sklepu
+        # Upload to shop
         self.shop_uploader.go_to_shop(product_data)
 
-        input("\nNaciśnij Enter, aby przejść do wysyłania danych do sklepu...")
+        input("\nPress Enter to proceed with sending data to the shop...")
 
         self.shop_uploader.run_sequence(product_data)
         return product_data
@@ -59,15 +59,15 @@ class ProcessFacade:
                           counter_file="product_counter.txt",
                           pause_file="pause.txt"):
         """
-        Dla każdego produktu z pliku (jedna nazwa w linii):
-          - wywołaj open_product(name)
-          - wykonaj pełen proces kopiowania
-          - usuń linię z pliku
-          - zaktualizuj licznik i czas działania
-          - sprawdź pause.txt i ewentualnie przerwij
+        For each product from the file (one name per line):
+          - call open_product(name)
+          - execute the full copy process
+          - remove the line from the file
+          - update counter and run time
+          - check pause.txt and possibly break
         """
 
-        # --- Inicjalizacja licznika i czasu ---
+        # --- Initialize counter and start time ---
         processed_count = 0
         start_time = time.time()
 
@@ -80,29 +80,29 @@ class ProcessFacade:
                 elapsed_before = h * 3600 + m * 60 + s
                 start_time = time.time() - elapsed_before
                 logging.info(
-                    "Wczytano stan z %s: %d produktów, czas wcześniej: %s",
+                    "Loaded state from %s: %d products, previous time: %s",
                     counter_file, processed_count, lines[1]
                 )
             except Exception:
                 logging.warning(
-                    "Nie udało się wczytać %s — licznik zerowany.", counter_file
+                    "Failed to load %s — counter reset.", counter_file
                 )
                 processed_count = 0
                 start_time = time.time()
 
-        # --- Wczytanie listy produktów ---
+        # --- Load list of products ---
         try:
             with open(filename, "r", encoding="utf-8") as f:
                 all_lines = [line.strip() for line in f if line.strip()]
         except FileNotFoundError:
-            logging.error("Plik %s nie istnieje.", filename)
+            logging.error("File %s does not exist.", filename)
             return
 
         remaining = all_lines.copy()
 
-        # --- Główna pętla batchu ---
+        # --- Main batch loop ---
         for name in all_lines:
-            logging.info("=== Przetwarzam produkt: %s ===", name)
+            logging.info("=== Processing product: %s ===", name)
 
             # 1) Open/search
             self.crm_downloader.open_product(name)
@@ -112,16 +112,16 @@ class ProcessFacade:
             self.go_to_shop()
             self.run_upload_process()
 
-            # --- Po pomyślnym uploadzie ---
+            # --- After successful upload ---
             processed_count += 1
 
-            # Usuń z remaining i nadpisz products.txt
+            # Remove from remaining and overwrite products.txt
             remaining.remove(name)
             with open(filename, "w", encoding="utf-8") as f:
                 for r in remaining:
                     f.write(r + "\n")
 
-            # Oblicz i zapisz licznik + czas
+            # Calculate and save counter + elapsed time
             elapsed = int(time.time() - start_time)
             h, rem = divmod(elapsed, 3600)
             m, s = divmod(rem, 60)
@@ -132,27 +132,27 @@ class ProcessFacade:
                 cf.write(elapsed_str + "\n")
 
             logging.info(
-                "Przetworzono %d produktów; czas działania: %s",
+                "Processed %d products; runtime: %s",
                 processed_count, elapsed_str
             )
 
-            # --- Sprawdzenie pliku pause.txt ---
+            # --- Check pause.txt ---
             try:
                 with open(pause_file, "r", encoding="utf-8") as pf:
                     content = pf.read().strip()
                 if content == "-":
                     logging.info(
-                        "Znaleziono '-' w %s — przerywam batch i wracam do menu.",
+                        "Found '-' in %s — aborting batch and returning to menu.",
                         pause_file
                     )
                     return
             except FileNotFoundError:
-                # plik nie istnieje → batch leci dalej
+                # file does not exist → continue batch
                 pass
             except Exception as e:
                 logging.warning(
-                    "Nie udało się odczytać %s (%s) — batch kontynuuje.",
+                    "Failed to read %s (%s) — batch continues.",
                     pause_file, e
                 )
 
-        logging.info("Przetwarzanie z pliku %s zakończone.", filename)
+        logging.info("Processing from file %s completed.", filename)
