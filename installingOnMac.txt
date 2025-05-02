@@ -1,0 +1,15 @@
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew update           # aktualizacja listy pakietów
+brew install python   # instalacja Pythona
+brew install geckodriver  # instalacja geckodrivera
+
+~/Library/Application Support/Firefox/Profiles/
+/Applications/Firefox.app/Contents/MacOS/firefox-bin -P
+
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+brew install python geckodriver
+brew install --cask firefox
+pip3 install selenium beautifulsoup4 deepl
+
