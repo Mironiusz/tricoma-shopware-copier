@@ -211,9 +211,10 @@ class CRMDownloader:
         logging.info("Switching to iframe 'contentframeprodukte' before clicking 'Sonstige Preise'.")
         self.driver.switch_to.frame("contentframeprodukte")
         try:
-            logging.info("Waiting for 'Sonstige Preise' element.")
+            logging.info("Waiting for list item containing text 'Sonstige Preise'.")
+            xpath = "//li[.//span[contains(normalize-space(), 'Sonstige Preise')]]"
             sonstige_preise = WebDriverWait(self.driver, 30).until(
-                EC.visibility_of_element_located((By.ID, "list_element_8"))
+                EC.visibility_of_element_located((By.XPATH, xpath))
             )
             self.driver.execute_script("arguments[0].scrollIntoView(true);", sonstige_preise)
             self.driver.execute_script("arguments[0].click();", sonstige_preise)
@@ -274,26 +275,20 @@ class CRMDownloader:
             logging.error("Error retrieving prices: %s", e)
             raise
 
-    def click_shopware6(self, sciezka_pliku="plik.txt"):
+    def click_shopware6(self):
+        logging.info("Switching to iframe 'contentframeprodukte' before clicking 'Shopware 6'.")
         self.driver.switch_to.frame("contentframeprodukte")
-        logging.info("Switched to iframe 'contentframeprodukte'.")
 
         try:
-            login = open(sciezka_pliku, "r", encoding="utf-8").readline().strip()
-            if not login:
-                raise ValueError("No login in file")
-            element_id = f"list_element_{26 if login.lower() == 'noihamburg' else 20}"
-
-            logging.info("Waiting for Shopware 6 element with ID '%s'.", element_id)
+            logging.info("Waiting for list item containing text 'Shopware 6'.")
+            xpath = "//li[.//span[contains(normalize-space(), 'Shopware 6')]]"
             shopware6 = WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable((By.ID, element_id))
+                EC.element_to_be_clickable((By.XPATH, xpath))
             )
+
             self.driver.execute_script("arguments[0].scrollIntoView(true);", shopware6)
             self.driver.execute_script("arguments[0].click();", shopware6)
             logging.info("'Shopware 6' clicked.")
-        except FileNotFoundError:
-            logging.error("File not found: %s", sciezka_pliku)
-            raise
         except Exception as e:
             logging.error("Error clicking 'Shopware 6': %s", e)
             raise
@@ -353,20 +348,27 @@ class CRMDownloader:
 
     def click_produktdaten(self):
         try:
-            logging.info("Clicking 'Produktdaten'.")
+            logging.info("Switching to default content and iframe 'contentframeprodukte' before clicking 'Produktdaten'.")
             self.driver.switch_to.default_content()
             self.driver.switch_to.frame("contentframeprodukte")
+
             scroll_container = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "td.menu_bg"))
             )
             self.driver.execute_script("arguments[0].scrollTop = 0;", scroll_container)
+
+            logging.info("Waiting for list item containing text 'Produktdaten'.")
+            xpath = "//li[.//span[contains(normalize-space(), 'Produktdaten')]]"
             produktdaten = WebDriverWait(self.driver, 30).until(
-                EC.visibility_of_element_located((By.ID, "list_element_2"))
+                EC.element_to_be_clickable((By.XPATH, xpath))
             )
+
             self.driver.execute_script("arguments[0].scrollIntoView(true);", produktdaten)
             self.driver.execute_script("arguments[0].click();", produktdaten)
             logging.info("'Produktdaten' clicked.")
+
             self.driver.switch_to.default_content()
+
         except Exception as e:
             logging.error("Error clicking 'Produktdaten': %s", e)
             self.driver.switch_to.default_content()
