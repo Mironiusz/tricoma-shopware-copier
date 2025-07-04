@@ -4,6 +4,7 @@ from driver_initializer import DriverInitializer
 from facade import ProcessFacade
 from interface import UserInterface
 from log_in import LogIn
+from layout_manager import setup_layout
 
 def load_config(filename="config.json"):
     try:
@@ -19,6 +20,7 @@ def main():
     config = load_config()
     driver_init = DriverInitializer(config)
     driver = driver_init.init_driver()
+    setup_layout(driver, config.get("LAYOUT", {}))
     facade = ProcessFacade(driver, config)
 
     # Otwarcie stron

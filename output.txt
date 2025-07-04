@@ -15,104 +15,104 @@ class CRMDownloader:
         try:
             with open(filename, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            logging.info("Dane produktu wczytane z %s", filename)
+            logging.info("Product data loaded from %s", filename)
             return data
         except Exception as e:
-            logging.error("Błąd przy wczytywaniu danych z pliku %s: %s", filename, e)
+            logging.error("Error loading data from file %s: %s", filename, e)
             return {}
 
     def save_product_data(self, product_data, filename="product_data.json"):
         try:
             with open(filename, "w", encoding="utf-8") as f:
                 json.dump(product_data, f, ensure_ascii=False, indent=4)
-            logging.info("Dane produktu zapisane do pliku: %s", filename)
+            logging.info("Product data saved to file: %s", filename)
         except Exception as e:
-            logging.error("Błąd przy zapisywaniu danych produktu do pliku: %s", e)
+            logging.error("Error saving product data to file: %s", e)
 
     def display_final_info(self, product_data):
-        print("\n--- Podsumowanie danych produktu ---")
+        print("\n--- Product data summary ---")
         for key, value in product_data.items():
             print(f"{key}: {value}")
-        print("--- Koniec podsumowania ---")
+        print("--- End of summary ---")
 
     def wait_for_login(self, crm_url, shop_url):
-        logging.info("Otwieram CRM oraz Sklep")
+        logging.info("Opening CRM and shop")
         self.driver.get(crm_url)
         self.driver.execute_script("window.open(arguments[0], '_blank');", shop_url)
         tabs = self.driver.window_handles
-        logging.info("Otwartych zakładek: %s", tabs)
+        logging.info("Open tabs: %s", tabs)
 
     def switch_to_crm(self):
         tabs = self.driver.window_handles
         if len(tabs) >= 1:
             self.driver.switch_to.window(tabs[0])
-            logging.info("Przełączono na zakładkę CRM.")
+            logging.info("Switched to CRM tab.")
             self.driver.switch_to.default_content()
         else:
-            logging.error("Brak otwartych zakładek do przełączenia (CRM).")
+            logging.error("No open tabs to switch to (CRM).")
 
     def switch_to_product_iframe(self):
         self.driver.switch_to.default_content()
-        logging.info("Przełączam się na iframe z id 'contentframeprodukte'.")
+        logging.info("Switching to iframe with id 'contentframeprodukte'.")
         product_iframe = WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located((By.ID, "contentframeprodukte"))
         )
         self.driver.switch_to.frame(product_iframe)
-        logging.info("Przełączono na iframe produktu.")
+        logging.info("Switched to product iframe.")
 
     def wait_for_product_page(self):
-        logging.info("Czekam na załadowanie strony produktu (element o id 'feld44').")
+        logging.info("Waiting for product page to load (element with id 'feld44').")
         try:
             WebDriverWait(self.driver, 30).until(lambda d: len(d.find_elements(By.XPATH, "//*[@id='feld44']")) > 0)
             fields = self.driver.find_elements(By.XPATH, "//*[@id='feld44']")
-            logging.info("Znaleziono %d elementów o id 'feld44'.", len(fields))
+            logging.info("Found %d elements with id 'feld44'.", len(fields))
             return fields[0]
         except Exception as e:
-            logging.error("Nie udało się znaleźć elementu 'feld44': %s", e)
+            logging.error("Failed to find element 'feld44': %s", e)
             raise
 
     def fill_product_data(self):
         try:
-            logging.info("Uzupełniam pole 'feld93' wartością 'Stck'.")
+            logging.info("Filling 'feld93' with value 'Stck'.")
             feld93 = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "feld93"))
             )
             feld93.clear()
             feld93.send_keys("Stck")
-            logging.info("Pole 'feld93' ustawione.")
+            logging.info("Field 'feld93' set.")
         except Exception as e:
-            logging.error("Błąd przy uzupełnianiu pola 'feld93': %s", e)
+            logging.error("Error filling field 'feld93': %s", e)
         try:
-            logging.info("Uzupełniam pole 'feld94_vorne' wartością '1'.")
+            logging.info("Filling 'feld94_vorne' with value '1'.")
             feld94 = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "feld94_vorne"))
             )
             feld94.clear()
             feld94.send_keys("1")
-            logging.info("Pole 'feld94_vorne' ustawione.")
+            logging.info("Field 'feld94_vorne' set.")
         except Exception as e:
-            logging.error("Błąd przy uzupełnianiu pola 'feld94_vorne': %s", e)
+            logging.error("Error filling field 'feld94_vorne': %s", e)
         try:
-            logging.info("Ustawiam select 'feld99' na wartość '124'.")
+            logging.info("Setting select 'feld99' to value '124'.")
             feld99 = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.NAME, "feld99"))
             )
             select_feld99 = Select(feld99)
             select_feld99.select_by_value("124")
-            logging.info("Select 'feld99' ustawiony.")
+            logging.info("Select 'feld99' set.")
         except Exception as e:
-            logging.error("Błąd przy ustawianiu selecta 'feld99': %s", e)
+            logging.error("Error setting select 'feld99': %s", e)
 
     def click_save(self):
         try:
-            logging.info("Klikam przycisk zapisu.")
+            logging.info("Clicking save button.")
             save_button = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "input.Buttonspeichern[name='feldspeichern']"))
             )
             save_button.click()
-            logging.info("Przycisk zapisu kliknięty.")
+            logging.info("Save button clicked.")
         except Exception as e:
-            logging.error("Błąd przy klikaniu przycisku zapisu: %s", e)
+            logging.error("Error clicking save button: %s", e)
 
     def remove_inline_styles(self, html):
         soup = BeautifulSoup(html, "html.parser")
@@ -125,24 +125,24 @@ class CRMDownloader:
     def get_product_details(self):
         product_data = {}
         try:
-            logging.info("Pobieram numer produktu z pola 'feld44'.")
+            logging.info("Retrieving product number from 'feld44'.")
             new_field = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, "//*[@id='feld44']"))
             )
             artikelnummer = new_field.get_attribute("value")
             product_data["artikelnummer"] = artikelnummer
-            logging.info("Numer produktu: %s", artikelnummer)
+            logging.info("Product number: %s", artikelnummer)
         except Exception as e:
-            logging.error("Błąd przy pobieraniu numeru produktu: %s", e)
+            logging.error("Error retrieving product number: %s", e)
         try:
-            logging.info("Pobieram wartość opakowania z pola 'feld82_vorne'.")
+            logging.info("Retrieving packaging unit from 'feld82_vorne'.")
             verpackungseinheit = self.driver.find_element(By.ID, "feld82_vorne").get_attribute("value")
             product_data["verpackungseinheit"] = verpackungseinheit
-            logging.info("Opakowanie: %s", verpackungseinheit)
+            logging.info("Packaging unit: %s", verpackungseinheit)
         except Exception as e:
-            logging.error("Błąd przy pobieraniu opakowania: %s", e)
+            logging.error("Error retrieving packaging unit: %s", e)
         try:
-            logging.info("Pobieram opis produktu z iframe edytora.")
+            logging.info("Retrieving product description from editor iframe.")
             desc_iframe = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "tri_editor_feld42_ifr"))
             )
@@ -153,91 +153,92 @@ class CRMDownloader:
             beschreibung = body_elem.get_attribute("innerHTML")
             beschreibung = self.remove_inline_styles(beschreibung)
             product_data["beschreibung"] = beschreibung
-            logging.info("Opis produktu pobrany.")
+            logging.info("Product description retrieved.")
             self.driver.switch_to.parent_frame()
         except Exception as e:
-            logging.error("Błąd przy pobieraniu opisu produktu: %s", e)
+            logging.error("Error retrieving product description: %s", e)
             product_data["beschreibung"] = ""
         return product_data
 
     def handle_language_popup(self, product_data):
         try:
-            logging.info("Klikam przycisk wyboru języka (alt='Sprachwahl').")
+            logging.info("Clicking language selection button (alt='Sprachwahl').")
             lang_button = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, "//img[@alt='Sprachwahl']"))
             )
             lang_button.click()
-            logging.info("Przycisk wyboru języka kliknięty.")
+            logging.info("Language selection button clicked.")
         except Exception as e:
-            logging.error("Błąd przy klikaniu przycisku wyboru języka: %s", e)
-        logging.info("Powracam do głównego kontekstu.")
+            logging.error("Error clicking language selection button: %s", e)
+        logging.info("Returning to main context.")
         self.driver.switch_to.default_content()
         try:
-            logging.info("Czekam na iframe popupu językowego (id='contentframeSprache').")
+            logging.info("Waiting for language popup iframe (id='contentframeSprache').")
             lang_iframe = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "contentframeSprache"))
             )
             self.driver.switch_to.frame(lang_iframe)
-            logging.info("Przełączono na iframe popupu językowego.")
+            logging.info("Switched to language popup iframe.")
         except Exception as e:
-            logging.error("Błąd przy przełączaniu na iframe popupu językowego: %s", e)
+            logging.error("Error switching to language popup iframe: %s", e)
             raise
         try:
-            logging.info("Pobieram zawartość pól tytułów w popupie.")
+            logging.info("Retrieving title fields from popup.")
             titel_fr_elem = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.NAME, "titel_FRA"))
             )
             product_data["titel_FRA"] = titel_fr_elem.get_attribute("value")
-            logging.info("Pobrano 'titel_FRA': %s", product_data["titel_FRA"])
+            logging.info("Retrieved 'titel_FRA': %s", product_data["titel_FRA"])
             titel_eng_elem = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.NAME, "titel_GBR"))
             )
             product_data["titel_GBR"] = titel_eng_elem.get_attribute("value")
-            logging.info("Pobrano 'titel_GBR': %s", product_data["titel_GBR"])
+            logging.info("Retrieved 'titel_GBR': %s", product_data["titel_GBR"])
         except Exception as e:
-            logging.error("Błąd przy pobieraniu danych z popupu: %s", e)
-        logging.info("Powracam do głównego kontekstu.")
+            logging.error("Error retrieving data from popup: %s", e)
+        logging.info("Returning to main context.")
         self.driver.switch_to.default_content()
         try:
             close_button = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "div#window_Sprache img.window_close"))
             )
             self.driver.execute_script("arguments[0].click();", close_button)
-            logging.info("Popup zamknięty.")
+            logging.info("Popup closed.")
         except Exception as e:
-            logging.error("Błąd przy zamykaniu popupu: %s", e)
+            logging.error("Error closing popup: %s", e)
         self.driver.switch_to.default_content()
 
     def click_sonstige_preise(self):
-        logging.info("Przełączam się na iframe 'contentframeprodukte' przed kliknięciem 'Sonstige Preise'.")
+        logging.info("Switching to iframe 'contentframeprodukte' before clicking 'Sonstige Preise'.")
         self.driver.switch_to.frame("contentframeprodukte")
         try:
-            logging.info("Czekam na element 'Sonstige Preise'.")
+            logging.info("Waiting for list item containing text 'Sonstige Preise'.")
+            xpath = "//li[.//span[contains(normalize-space(), 'Sonstige Preise')]]"
             sonstige_preise = WebDriverWait(self.driver, 30).until(
-                EC.visibility_of_element_located((By.ID, "list_element_8"))
+                EC.visibility_of_element_located((By.XPATH, xpath))
             )
             self.driver.execute_script("arguments[0].scrollIntoView(true);", sonstige_preise)
             self.driver.execute_script("arguments[0].click();", sonstige_preise)
-            logging.info("'Sonstige Preise' kliknięte.")
+            logging.info("'Sonstige Preise' clicked.")
         except Exception as e:
-            logging.error("Błąd przy klikaniu 'Sonstige Preise': %s", e)
+            logging.error("Error clicking 'Sonstige Preise': %s", e)
             raise
 
     def switch_to_frameunten(self):
         try:
-            logging.info("Czekam na iframe 'frameunten'.")
+            logging.info("Waiting for iframe 'frameunten'.")
             frameunten = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "frameunten"))
             )
             self.driver.switch_to.frame(frameunten)
-            logging.info("Przełączono na iframe 'frameunten'.")
+            logging.info("Switched to iframe 'frameunten'.")
         except Exception as e:
-            logging.error("Błąd przy przełączaniu na iframe 'frameunten': %s", e)
+            logging.error("Error switching to iframe 'frameunten': %s", e)
             raise
 
     def click_advanced_price_settings(self):
         try:
-            logging.info("Czekam na link 'Erweiterte Preiseinstellungen'.")
+            logging.info("Waiting for 'Erweiterte Preiseinstellungen' link.")
             advanced_link = WebDriverWait(self.driver, 30).until(
                 EC.visibility_of_element_located((By.XPATH, "//a[contains(@href, 'auswahl=preise') and contains(., 'Erweiterte Preiseinstellungen')]"))
             )
@@ -246,20 +247,17 @@ class CRMDownloader:
                 EC.element_to_be_clickable((By.XPATH, "//a[contains(@href, 'auswahl=preise') and contains(., 'Erweiterte Preiseinstellungen')]"))
             )
             self.driver.execute_script("arguments[0].click();", advanced_link)
-            logging.info("Kliknięto link 'Erweiterte Preiseinstellungen'.")
+            logging.info("'Erweiterte Preiseinstellungen' clicked.")
         except Exception as e:
-            logging.error("Błąd przy klikaniu linku: %s", e)
+            logging.error("Error clicking link: %s", e)
             raise
 
     def get_prices(self, product_data):
         try:
-            logging.info("Pobieram ceny z sekcji 'Weitere Verkaufspreise (€)'.")
+            logging.info("Retrieving prices from 'Weitere Verkaufspreise (€)' section.")
             container = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, "//div[@class='tri_box'][p[contains(., 'Weitere Verkaufspreise (€)')]]"))
             )
-            # html = self.driver.page_source
-            # with open("debug_before_prices.html", "w", encoding="utf-8") as f:
-            #     f.write(html)
             table = container.find_element(By.XPATH, ".//div[@class='content']//table[contains(@class, 'table_listing')]")
             handler_row = table.find_element(By.XPATH, ".//tr[td[contains(., 'Händler (H)')]]")
             handler_int = handler_row.find_element(By.XPATH, ".//input[contains(@class, 'zahlenfeld_vorkomma')]").get_attribute("value")
@@ -275,100 +273,110 @@ class CRMDownloader:
             logging.info("Endkunde preis: %s", endkunde_preis)
             self.driver.switch_to.default_content()
         except Exception as e:
-            logging.error("Błąd przy pobieraniu cen: %s", e)
+            logging.error("Error retrieving prices: %s", e)
             raise
 
     def click_shopware6(self):
+        logging.info("Switching to iframe 'contentframeprodukte' before clicking 'Shopware 6'.")
         self.driver.switch_to.frame("contentframeprodukte")
-        logging.info("Przełączono na iframe 'contentframeprodukte'.")
+
         try:
-            logging.info("Czekam na element 'Shopware 6'.")
+            logging.info("Waiting for list item containing text 'Shopware 6'.")
+            xpath = "//li[.//span[contains(normalize-space(), 'Shopware 6')]]"
             shopware6 = WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable((By.ID, "list_element_26")) # christine: 20, noihamburg: 26
+                EC.element_to_be_clickable((By.XPATH, xpath))
             )
+
             self.driver.execute_script("arguments[0].scrollIntoView(true);", shopware6)
             self.driver.execute_script("arguments[0].click();", shopware6)
-            logging.info("'Shopware 6' kliknięty.")
+            logging.info("'Shopware 6' clicked.")
         except Exception as e:
-            logging.error("Błąd przy klikaniu 'Shopware 6': %s", e)
+            logging.error("Error clicking 'Shopware 6': %s", e)
             raise
 
     def switch_to_shopware_frame(self):
         try:
-            logging.info("Czekam na iframe 'frameunten' dla Shopware 6.")
+            logging.info("Waiting for iframe 'frameunten' for Shopware 6.")
             shopware_frame = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, "//iframe[@id='frameunten' and contains(@src, 'shopwaresechs')]"))
             )
-            logging.info("Znaleziono iframe 'frameunten'.")
+            logging.info("Found iframe 'frameunten'.")
             self.driver.switch_to.frame(shopware_frame)
-            logging.info("Przełączono na iframe 'frameunten' dla Shopware 6.")
+            logging.info("Switched to iframe 'frameunten' for Shopware 6.")
         except Exception as e:
-            logging.error("Błąd przy przełączaniu na iframe 'frameunten': %s", e)
+            logging.error("Error switching to iframe 'frameunten': %s", e)
             raise
 
     def check_and_import_product(self):
-        logging.info("Sprawdzam, czy produkt został już importiert.")
+        logging.info("Checking if product has already been importiert.")
         try:
             WebDriverWait(self.driver, 1).until(
                 EC.presence_of_element_located((By.XPATH, "//*[contains(text(), 'importiert')]"))
             )
-            logging.info("Produkt już został importiert – pomijam kliknięcia.")
+            logging.info("Product already importiert – skipping clicks.")
             return
         except Exception:
-            logging.info("Produkt nie jest importiert – kontynuuję akcję.")
+            logging.info("Product not importiert – continuing actions.")
         try:
-            logging.info("Klikam przycisk 'produktabgleich_vormerken'.")
+            logging.info("Clicking 'produktabgleich_vormerken' button.")
             button_vormerken = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((By.NAME, "produktabgleich_vormerken"))
             )
             button_vormerken.click()
-            logging.info("Przycisk 'produktabgleich_vormerken' kliknięty.")
+            logging.info("'produktabgleich_vormerken' clicked.")
         except Exception as e:
-            logging.error("Błąd przy klikaniu 'produktabgleich_vormerken': %s", e)
+            logging.error("Error clicking 'produktabgleich_vormerken': %s", e)
             raise
         try:
-            logging.info("Klikam przycisk 'produktabgleich_durchfuehren'.")
+            logging.info("Clicking 'produktabgleich_durchfuehren' button.")
             button_durchfuehren = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((By.NAME, "produktabgleich_durchfuehren"))
             )
             button_durchfuehren.click()
-            logging.info("Przycisk 'produktabgleich_durchfuehren' kliknięty.")
+            logging.info("'produktabgleich_durchfuehren' clicked.")
         except Exception as e:
-            logging.warning("Przycisk 'produktabgleich_durchfuehren' nie został znaleziony lub nie można go kliknąć: %s", e)
+            logging.warning("'produktabgleich_durchfuehren' not found or not clickable: %s", e)
         try:
-            logging.info("Czekam na potwierdzenie 'importiert'.")
+            logging.info("Waiting for confirmation 'importiert'.")
             WebDriverWait(self.driver, 60).until(
                 EC.presence_of_element_located((By.XPATH, "//*[contains(text(), 'importiert') and contains(@style, 'color: green')]"))
             )
-            logging.info("Produkt został pomyślnie importiert.")
+            logging.info("Product successfully importiert.")
         except Exception as e:
-            logging.error("Błąd przy oczekiwaniu na potwierdzenie importu: %s", e)
+            logging.error("Error waiting for import confirmation: %s", e)
             raise
         self.driver.switch_to.default_content()
 
     def click_produktdaten(self):
         try:
-            logging.info("Klikam 'Produktdaten'.")
+            logging.info("Switching to default content and iframe 'contentframeprodukte' before clicking 'Produktdaten'.")
             self.driver.switch_to.default_content()
             self.driver.switch_to.frame("contentframeprodukte")
+
             scroll_container = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "td.menu_bg"))
             )
             self.driver.execute_script("arguments[0].scrollTop = 0;", scroll_container)
+
+            logging.info("Waiting for list item containing text 'Produktdaten'.")
+            xpath = "//li[.//span[contains(normalize-space(), 'Produktdaten')]]"
             produktdaten = WebDriverWait(self.driver, 30).until(
-                EC.visibility_of_element_located((By.ID, "list_element_2"))
+                EC.element_to_be_clickable((By.XPATH, xpath))
             )
+
             self.driver.execute_script("arguments[0].scrollIntoView(true);", produktdaten)
             self.driver.execute_script("arguments[0].click();", produktdaten)
-            logging.info("'Produktdaten' kliknięte.")
+            logging.info("'Produktdaten' clicked.")
+
             self.driver.switch_to.default_content()
+
         except Exception as e:
-            logging.error("Błąd przy klikaniu 'Produktdaten': %s", e)
+            logging.error("Error clicking 'Produktdaten': %s", e)
             self.driver.switch_to.default_content()
             raise
 
     def open_product(self, product_name):
-        logging.info("open_product: wyszukuję '%s'", product_name)
+        logging.info("open_product: searching for '%s'", product_name)
         self.switch_to_crm()
         self.driver.switch_to.default_content()
 
@@ -379,7 +387,7 @@ class CRMDownloader:
         try:
             self.driver.execute_script("arguments[0].click();", inp)
         except Exception:
-            logging.warning("open_product: JS click nie zadziałał, spróbuję normalnego click()")
+            logging.warning("open_product: JS click failed, trying normal click()")
             inp.click()
 
         time.sleep(0.5)
@@ -389,7 +397,7 @@ class CRMDownloader:
         )
         inp.clear()
         inp.send_keys(product_name)
-        logging.info("open_product: wpisano w wyszukiwarkę '%s'", product_name)
+        logging.info("open_product: entered '%s' in search", product_name)
 
         result_box = WebDriverWait(self.driver, 10).until(
             EC.visibility_of_element_located((By.ID, "maneta_search_window"))
@@ -397,17 +405,18 @@ class CRMDownloader:
 
         first_link = result_box.find_element(By.CSS_SELECTOR, "a.tricoma_list_element_link")
         self.driver.execute_script("arguments[0].click();", first_link)
-        logging.info("open_product: kliknięto pierwszy wynik")
+        logging.info("open_product: clicked first result")
 
         time.sleep(3)
 
         self.switch_to_product_iframe()
         self.wait_for_product_page()
-        logging.info("open_product: strona produktu załadowana")
-
+        logging.info("open_product: product page loaded")
 
     def run_sequence(self):
         self.switch_to_crm()
+        self.switch_to_product_iframe()
+        self.click_produktdaten()
         self.switch_to_product_iframe()
         self.wait_for_product_page()
         self.fill_product_data()
@@ -437,7 +446,7 @@ class DriverInitializer:
         self.config = config
 
     def init_driver(self):
-        logging.info("Inicjalizacja Firefoksa z geckodriverem i dedykowanym profilem.")
+        logging.info("Initializing Firefox with geckodriver and dedicated profile.")
         service = Service(self.config["GECKODRIVER_PATH"])
         options = Options()
         options.binary_location = self.config["FIREFOX_BINARY"]
@@ -447,7 +456,9 @@ class DriverInitializer:
 
 
 ==== ./facade.py ====
+import time
 import logging
+import os
 from crm_downloader import CRMDownloader
 from shop_uploader import ShopUploader
 from translator import Translator
@@ -461,17 +472,17 @@ class ProcessFacade:
         self.translator = Translator(config)
 
     def run_full_process(self):
-        # Download danych z CRM
+        # Download data from CRM
         product_data = self.crm_downloader.run_sequence()
         self.crm_downloader.save_product_data(product_data)
-        # Tłumaczenie opisu
+        # Translate description
         product_data = self.translator.translate_product(product_data)
         self.crm_downloader.display_final_info(product_data)
         self.crm_downloader.save_product_data(product_data)
-        # Upload do sklepu
+        # Upload to shop
         self.shop_uploader.go_to_shop(product_data)
 
-        input("\nNaciśnij Enter, aby przejść do wysyłania danych do sklepu...")
+        input("\nPress Enter to proceed with sending data to the shop...")
 
         self.shop_uploader.run_sequence(product_data)
         return product_data
@@ -501,28 +512,109 @@ class ProcessFacade:
         self.shop_uploader.run_sequence(product_data)
         return product_data
 
-    def run_batch_process(self, filename="products.txt"):
+    def run_batch_process(self,
+                          filename="products.txt",
+                          counter_file="product_counter.txt",
+                          pause_file="pause.txt"):
         """
-        Dla każdego produktu z pliku (jedna nazwa w linii):
-          - wywołaj open_product(name)
-          - wykonaj pełen proces kopiowania
+        For each product from the file (one name per line):
+          - call open_product(name)
+          - execute the full copy process
+          - remove the line from the file
+          - update counter and run time
+          - check pause.txt and possibly break
         """
+
+        # --- Initialize counter and start time ---
+        processed_count = 0
+        start_time = time.time()
+
+        if os.path.exists(counter_file):
+            try:
+                with open(counter_file, "r", encoding="utf-8") as cf:
+                    lines = cf.read().splitlines()
+                processed_count = int(lines[0])
+                h, m, s = map(int, lines[1].split(":"))
+                elapsed_before = h * 3600 + m * 60 + s
+                start_time = time.time() - elapsed_before
+                logging.info(
+                    "Loaded state from %s: %d products, previous time: %s",
+                    counter_file, processed_count, lines[1]
+                )
+            except Exception:
+                logging.warning(
+                    "Failed to load %s — counter reset.", counter_file
+                )
+                processed_count = 0
+                start_time = time.time()
+
+        # --- Load list of products ---
         try:
             with open(filename, "r", encoding="utf-8") as f:
-                for line in f:
-                    name = line.strip()
-                    if not name:
-                        continue
-                    logging.info("=== Przetwarzam produkt: %s ===", name)
-                    self.crm_downloader.open_product(name)
-                    self.run_download_process()
-                    self.run_translate_process()
-                    self.go_to_shop()
-                    self.run_upload_process()
-            logging.info("Przetwarzanie z pliku %s zakończone.", filename)
-        except Exception as e:
-            logging.error("Błąd przy batchowym przetwarzaniu z pliku %s: %s", filename, e)
-            raise
+                all_lines = [line.strip() for line in f if line.strip()]
+        except FileNotFoundError:
+            logging.error("File %s does not exist.", filename)
+            return
+
+        remaining = all_lines.copy()
+
+        # --- Main batch loop ---
+        for name in all_lines:
+            logging.info("=== Processing product: %s ===", name)
+
+            # 1) Open/search
+            self.crm_downloader.open_product(name)
+            # 2) Download, translate, upload
+            self.run_download_process()
+            self.run_translate_process()
+            self.go_to_shop()
+            self.run_upload_process()
+
+            # --- After successful upload ---
+            processed_count += 1
+
+            # Remove from remaining and overwrite products.txt
+            remaining.remove(name)
+            with open(filename, "w", encoding="utf-8") as f:
+                for r in remaining:
+                    f.write(r + "\n")
+
+            # Calculate and save counter + elapsed time
+            elapsed = int(time.time() - start_time)
+            h, rem = divmod(elapsed, 3600)
+            m, s = divmod(rem, 60)
+            elapsed_str = f"{h:02d}:{m:02d}:{s:02d}"
+
+            with open(counter_file, "w", encoding="utf-8") as cf:
+                cf.write(f"{processed_count}\n")
+                cf.write(elapsed_str + "\n")
+
+            logging.info(
+                "Processed %d products; runtime: %s",
+                processed_count, elapsed_str
+            )
+
+            # --- Check pause.txt ---
+            try:
+                with open(pause_file, "r", encoding="utf-8") as pf:
+                    content = pf.read().strip()
+                if content == "-":
+                    logging.info(
+                        "Found '-' in %s — aborting batch and returning to menu.",
+                        pause_file
+                    )
+                    return
+            except FileNotFoundError:
+                # file does not exist → continue batch
+                pass
+            except Exception as e:
+                logging.warning(
+                    "Failed to read %s (%s) — batch continues.",
+                    pause_file, e
+                )
+
+        logging.info("Processing from file %s completed.", filename)
+
 
 ==== ./interface.py ====
 import logging
@@ -532,12 +624,12 @@ class UserInterface:
         self.facade = facade
 
     def show_menu(self):
-        print("Wybierz operację:")
-        print("1 - Pełny proces (Download, Translate, Upload)")
-        print("2 - Tylko Download i Translate")
-        print("3 - Tylko Upload")
-        print("4 - Przetwarzaj listę produktów z pliku")
-        choice = input("Wprowadź wybór (1/2/3/4): ")
+        print("Choose an operation:")
+        print("1 - Full process (Download, Translate, Upload)")
+        print("2 - Download and Translate only")
+        print("3 - Upload only")
+        print("4 - Process product list from file")
+        choice = input("Enter your choice (1/2/3/4): ")
         return choice
 
     def execute_choice(self):
@@ -560,9 +652,10 @@ class UserInterface:
             try:
                 self.facade.run_batch_process(filename)
             except Exception:
-                logging.error("Nie udało się przetworzyć pliku %s", filename)
+                logging.error("Failed to process file %s", filename)
         else:
-            logging.error("Nieprawidłowy wybór.")
+            logging.error("Invalid choice.")
+
 
 ==== ./log_in.py ====
 import logging
@@ -577,40 +670,41 @@ class LogIn:
         self.driver = driver
         self.tricoma = tricoma
         self.shopware = shopware
+        self.number = None
 
     def select_tricoma_login(self):
-        print("Dostępni użytkownicy Tricoma:")
+        print("Available Tricoma users:")
         users = list(self.tricoma.items())
         for idx, (key, credentials) in enumerate(users, start=1):
             print(f"{idx}: {key}")
-        user_id = input("Wybierz użytkownika Tricoma: ")
+        user_id = input("Choose Tricoma user: ")
         _, selected_credentials = users[int(user_id) - 1]
         return selected_credentials.get("USERNAME"), selected_credentials.get("PASSWORD")
 
-
     def select_shopware_login(self):
-        print("Dostępni użytkownicy Shopware:")
+        print("Available Shopware users:")
         users = list(self.shopware.items())
         for idx, (key, credentials) in enumerate(users, start=1):
             print(f"{idx}: {key}")
-        user_id = input("Wybierz użytkownika Shopware: ")
+        user_id = input("Choose Shopware user: ")
         _, selected_credentials = users[int(user_id) - 1]
         return selected_credentials.get("USERNAME"), selected_credentials.get("PASSWORD")
 
-
     def log_in_tricoma(self, tricoma_credentials):
         login, password = tricoma_credentials
-        logging.info("Przełączam się na tricomę.")
+        with open("plik.txt", "w", encoding="utf-8") as f:
+            f.write(login)
+        logging.info("Switching to Tricoma.")
         tabs = self.driver.window_handles
         self.driver.switch_to.window(tabs[0])
         self.driver.switch_to.default_content()
-        logging.info("Przełączam się na iframe do logowania.")
+        logging.info("Switching to login iframe.")
         iframe = WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located((By.ID, "contentframe"))
         )
         self.driver.switch_to.frame(iframe)
-        logging.info("Przełączono na iframe logowania.")
-        logging.info("Wpisuję dane logowania do Tricoma.")
+        logging.info("Switched to login iframe.")
+        logging.info("Entering Tricoma login credentials.")
 
         try:
             user_field = WebDriverWait(self.driver, 10).until(
@@ -618,9 +712,9 @@ class LogIn:
             )
             user_field.clear()
             user_field.send_keys(login)
-            logging.info("Pole username ustawione.")
+            logging.info("Username field set.")
         except Exception as e:
-            logging.error("Błąd przy uzupełnianiu pola username: %s", e)
+            logging.error("Error filling username field: %s", e)
 
         try:
             password_field = WebDriverWait(self.driver, 10).until(
@@ -628,24 +722,24 @@ class LogIn:
             )
             password_field.clear()
             password_field.send_keys(password)
-            logging.info("Pole password ustawione.")
+            logging.info("Password field set.")
         except Exception as e:
-            logging.error("Błąd przy uzupełnianiu pola password: %s", e)
+            logging.error("Error filling password field: %s", e)
 
         try:
-            logging.info("Klikam przycisk zapisu.")
+            logging.info("Clicking submit button.")
             save_button = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "input.login[name='submitbuton']"))
             )
             save_button.click()
-            logging.info("Przycisk zapisu kliknięty.")
+            logging.info("Submit button clicked.")
         except Exception as e:
-            logging.error("Błąd przy klikaniu przycisku zapisu: %s", e)
-
+            logging.error("Error clicking submit button: %s", e)
 
     def log_in_shopware(self, shopware_credentials):
         login, password = shopware_credentials
-        logging.info("Przełączam się na shopware.")
+
+        logging.info("Switching to Shopware.")
         tabs = self.driver.window_handles
         self.driver.switch_to.window(tabs[1])
         self.driver.switch_to.default_content()
@@ -656,9 +750,9 @@ class LogIn:
             )
             user_field.clear()
             user_field.send_keys(login)
-            logging.info("Pole username ustawione.")
+            logging.info("Username field set.")
         except Exception as e:
-            logging.error("Błąd przy uzupełnianiu pola username: %s", e)
+            logging.error("Error filling username field: %s", e)
 
         try:
             password_field = WebDriverWait(self.driver, 10).until(
@@ -666,20 +760,19 @@ class LogIn:
             )
             password_field.clear()
             password_field.send_keys(password)
-            logging.info("Pole password ustawione.")
+            logging.info("Password field set.")
         except Exception as e:
-            logging.error("Błąd przy uzupełnianiu pola password: %s", e)
+            logging.error("Error filling password field: %s", e)
 
         try:
-            logging.info("Klikam przycisk zapisu.")
+            logging.info("Clicking submit button.")
             save_button = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "button.sw-login__login-action"))
             )
             save_button.click()
-            logging.info("Przycisk zapisu kliknięty.")
+            logging.info("Submit button clicked.")
         except Exception as e:
-            logging.error("Błąd przy klikaniu przycisku zapisu: %s", e)
-
+            logging.error("Error clicking submit button: %s", e)
 
     def log_in(self):
         try:
@@ -688,8 +781,9 @@ class LogIn:
             tricoma_credentials = self.select_tricoma_login()
             self.log_in_tricoma(tricoma_credentials)
         except Exception as e:
-            logging.error("Błąd logowania: %s", e)
+            logging.error("Login error: %s", e)
             raise
+
 
 ==== ./main.py ====
 import logging
@@ -753,48 +847,48 @@ class ShopUploader:
         tabs = self.driver.window_handles
         if len(tabs) >= 2:
             self.driver.switch_to.window(tabs[1])
-            logging.info("Przełączono na zakładkę Sklep.")
+            logging.info("Switched to Shop tab.")
         else:
-            logging.error("Brak otwartej drugiej zakładki (Sklep).")
+            logging.error("No second tab open (Shop).")
 
     def go_to_tab(self, tab="general"):
         try:
             if tab.lower() == "general":
-                logging.info("Przechodzę do zakładki General.")
+                logging.info("Navigating to General tab.")
                 tab_element = WebDriverWait(self.driver, 20).until(
                     EC.element_to_be_clickable((
                         By.XPATH, "//a[contains(@href, '/base') and contains(@class, 'sw-product-detail__tab-general')]"
                     ))
                 )
             elif tab.lower() == "advanced pricing":
-                logging.info("Przechodzę do zakładki Advanced pricing.")
+                logging.info("Navigating to Advanced pricing tab.")
                 tab_element = WebDriverWait(self.driver, 20).until(
                     EC.element_to_be_clickable((
                         By.XPATH, "//a[contains(@href, '/prices') and contains(@class, 'sw-product-detail__tab-advanced-prices')]"
                     ))
                 )
             else:
-                logging.error("Nieznana zakładka: %s", tab)
+                logging.error("Unknown tab: %s", tab)
                 return False
             self.driver.execute_script("arguments[0].scrollIntoView(true);", tab_element)
             self.driver.execute_script("arguments[0].click();", tab_element)
-            logging.info("Przełączono na zakładkę %s.", tab)
+            logging.info("Switched to tab %s.", tab)
             return True
         except Exception as e:
-            logging.error("Błąd przy przełączaniu zakładki %s: %s", tab, e)
+            logging.error("Error switching to tab %s: %s", tab, e)
             return False
 
     def dump_page_source(self, file_path="page_dump.html"):
         try:
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(self.driver.page_source)
-            print(f"Page source zapisany do pliku: {file_path}")
+            print(f"Page source saved to file: {file_path}")
         except Exception as e:
-            print(f"Błąd podczas zapisywania page source: {e}")
+            print(f"Error saving page source: {e}")
 
     def update_manufacturer_selection(self):
         try:
-            logging.info("Aktualizuję wybór producenta (manufacturer).")
+            logging.info("Updating manufacturer selection.")
             manufacturer_container = WebDriverWait(self.driver, 20).until(
                 EC.visibility_of_element_located((By.ID, "manufacturerId"))
             )
@@ -806,12 +900,12 @@ class ShopUploader:
             ).text.strip()
 
             if current_value == "Scherer Voigt GbR":
-                logging.info("Producent już jest ustawiony na 'Scherer Voigt GbR'.")
+                logging.info("Manufacturer already set to 'Scherer Voigt GbR'.")
                 return True
 
             self.driver.execute_script("arguments[0].scrollIntoView(true);", container)
             self.driver.execute_script("arguments[0].click();", container)
-            logging.info("Kliknięto pole producenta - otwieram listę opcji.")
+            logging.info("Clicked manufacturer field to open options.")
 
             options_container = WebDriverWait(self.driver, 20).until(
                 EC.visibility_of_element_located(
@@ -826,13 +920,12 @@ class ShopUploader:
             )
             self.driver.execute_script("arguments[0].scrollIntoView(true);", first_option)
             self.driver.execute_script("arguments[0].click();", first_option)
-            logging.info("Wybrano producenta: 'Scherer Voigt GbR'.")
+            logging.info("Selected manufacturer: 'Scherer Voigt GbR'.")
             return True
 
         except Exception as e:
-            logging.error("Błąd przy aktualizacji producenta: %s", e)
+            logging.error("Error updating manufacturer: %s", e)
             return False
-
 
     def remove_rules_added(self):
         try:
@@ -840,7 +933,7 @@ class ShopUploader:
                 lambda d: d.find_elements(By.XPATH, "//button[.//span[text()='Delete pricing rule']]")
             )
             count = len(buttons)
-            logging.info("Znaleziono %s przycisków do usunięcia reguły cenowej.", count)
+            logging.info("Found %s buttons to delete pricing rules.", count)
             if count == 0:
                 return True
 
@@ -850,22 +943,19 @@ class ShopUploader:
                     button_to_remove = buttons[0]
                     self.driver.execute_script("arguments[0].scrollIntoView(true);", button_to_remove)
                     self.driver.execute_script("arguments[0].click();", button_to_remove)
-                    logging.info("Kliknięto przycisk do usunięcia reguły cenowej (%s/%s).", i + 1, count)
+                    logging.info("Clicked delete pricing rule button (%s/%s).", i + 1, count)
                     time.sleep(0.5)
                 else:
                     break
             return True
 
         except Exception as e:
-            self.dump_page_source()
-            logging.error("Błąd przy sprawdzaniu dodanych reguł: %s", e)
+            logging.info("No pricing rules found: %s", e)
             return False
-
 
     def select_conditional_rule(self, rule_text="Händler"):
         try:
-            self.dump_page_source("debug_before_prices.html")
-            logging.info("Klikam w element wyboru reguły warunkowej.")
+            logging.info("Clicking conditional rule selector.")
             selection_div = WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((
                     By.CSS_SELECTOR, "div.sw-product-detail-context-prices__empty-state-select-rule div.sw-select__selection"
@@ -879,15 +969,15 @@ class ShopUploader:
                 ))
             )
             li_option.click()
-            logging.info("Wybrano regułę warunkową: %s", rule_text)
+            logging.info("Selected conditional rule: %s", rule_text)
             return True
         except Exception as e:
-            logging.error("Błąd przy wyborze reguły warunkowej: %s", e)
+            logging.error("Error selecting conditional rule: %s", e)
             return False
 
     def click_add_pricing_rule(self):
         try:
-            logging.info("Klikam przycisk 'Add pricing rule'.")
+            logging.info("Clicking 'Add pricing rule' button.")
             add_rule_button = WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((
                     By.CSS_SELECTOR, "button.sw-product-detail-context-prices__add-new-rule"
@@ -895,45 +985,42 @@ class ShopUploader:
             )
             self.driver.execute_script("arguments[0].scrollIntoView(true);", add_rule_button)
             self.driver.execute_script("arguments[0].click();", add_rule_button)
-            logging.info("Przycisk 'Add pricing rule' kliknięty.")
+            logging.info("'Add pricing rule' button clicked.")
             return True
         except Exception as e:
-            logging.error("Błąd przy klikaniu 'Add pricing rule': %s", e)
+            logging.error("Error clicking 'Add pricing rule': %s", e)
             return False
 
     def update_handler_preis(self, product_data):
         try:
             handler_preis = product_data.get("handler_preis")
             if handler_preis is None:
-                logging.error("Brak ceny 'handler_preis' w product_data.")
+                logging.error("No 'handler_preis' in product_data.")
                 return False
 
-            # Czekamy, aż pojawią się inputy
             inputs = WebDriverWait(self.driver, 20).until(
                 lambda d: d.find_elements(By.XPATH, "//input[@name='sw-price-field-net' and @aria-label='Euro']")
             )
-            logging.info("Znaleziono %s inputów do aktualizacji ceny.", len(inputs))
+            logging.info("Found %s inputs to update price.", len(inputs))
 
-            # Iterujemy po inputach – modyfikujemy tylko te, które mają już wpisaną wartość
             for input_field in inputs:
                 current_value = input_field.get_attribute("value")
                 if current_value and current_value.strip() != "":
                     input_field.clear()
                     input_field.send_keys(str(handler_preis))
-                    logging.info("Zaktualizowano input (wcześniejsza wartość: %s) na: %s", current_value, handler_preis)
+                    logging.info("Updated input (previous value: %s) to: %s", current_value, handler_preis)
                 else:
-                    logging.info("Pominięto input, ponieważ nie ma w nim wpisanej wartości.")
+                    logging.info("Skipped input with no existing value.")
 
             return True
 
         except Exception as e:
-            logging.error("Błąd przy aktualizacji ceny 'handler_preis': %s", e)
+            logging.error("Error updating 'handler_preis': %s", e)
             return False
-
 
     def select_pricing_rule_in_new_card(self, rule_text="Händler Ausland"):
         try:
-            logging.info("Przechodzę do pola wyboru w nowej regule cenowej.")
+            logging.info("Selecting rule in new pricing card.")
             rule_input = WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((
                     By.XPATH,
@@ -948,34 +1035,30 @@ class ShopUploader:
                 ))
             )
             li_option.click()
-            logging.info("Wybrano regułę: %s", rule_text)
+            logging.info("Selected rule: %s", rule_text)
             return True
         except Exception as e:
-            logging.error("Błąd przy wyborze reguły w nowej karcie: %s", e)
+            logging.error("Error selecting rule in new card: %s", e)
             return False
 
     def update_price_fields(self, product_data):
         try:
             endkunde_price = float(product_data.get("endkunde_preis", 0))
             gross_price = round(endkunde_price * 1.19, 2)
-
             adjusted_price = round(gross_price / 0.05) * 0.05
-
             adjusted_price = round(adjusted_price, 2)
-
-            logging.info("Obliczona cena: %s, zaokrąglona do najbliższej wielokrotności 0.05: %s", gross_price, adjusted_price)
+            logging.info("Calculated gross price: %s, rounded to nearest 0.05: %s", gross_price, adjusted_price)
 
             gross_field = WebDriverWait(self.driver, 20).until(
                 EC.visibility_of_element_located((By.ID, "sw-price-field-gross"))
             )
             gross_field.clear()
             gross_field.send_keys(str(adjusted_price))
-            logging.info("Gross price ustawiony na: %s", adjusted_price)
+            logging.info("Gross price set to: %s", adjusted_price)
             return True
         except Exception as e:
-            logging.error("Błąd przy aktualizacji pola gross price: %s", e)
+            logging.error("Error updating gross price field: %s", e)
             return False
-
 
     def update_scaled_values(self, product_data):
         try:
@@ -986,43 +1069,40 @@ class ShopUploader:
                 row = WebDriverWait(self.driver, 20).until(
                     EC.presence_of_element_located((By.XPATH, row_xpath))
                 )
-                logging.info("Znaleziono wiersz dla grupy: %s", group)
-                from selenium.webdriver.common.action_chains import ActionChains
+                logging.info("Found row for group: %s", group)
                 actions = ActionChains(self.driver)
-                # Minimum purchase
                 min_cell = row.find_element(By.XPATH, ".//td[contains(@class, 'sw-data-grid__cell--minimumPurchase')]")
                 self.driver.execute_script("arguments[0].scrollIntoView(true);", min_cell)
                 actions.double_click(min_cell).perform()
-                logging.info("Podwójnie kliknięto Minimum purchase dla grupy: %s", group)
+                logging.info("Double-clicked Minimum purchase for group: %s", group)
                 min_input = WebDriverWait(min_cell, 10).until(
                     EC.visibility_of_element_located((By.XPATH, ".//input[@aria-label='Minimum purchase']"))
                 )
                 min_input.clear()
                 min_input.send_keys(value_to_set)
-                logging.info("Ustawiono Minimum purchase dla grupy '%s' na %s", group, value_to_set)
-                # Scaling
+                logging.info("Set Minimum purchase for '%s' to %s", group, value_to_set)
+
                 scaling_cell = row.find_element(By.XPATH, ".//td[contains(@class, 'sw-data-grid__cell--scaling')]")
                 self.driver.execute_script("arguments[0].scrollIntoView(true);", scaling_cell)
                 actions.double_click(scaling_cell).perform()
-                logging.info("Podwójnie kliknięto Scaling dla grupy: %s", group)
+                logging.info("Double-clicked Scaling for group: %s", group)
                 scaling_input = WebDriverWait(scaling_cell, 10).until(
                     EC.visibility_of_element_located((By.XPATH, ".//input[@aria-label='Scaling']"))
                 )
                 scaling_input.clear()
                 scaling_input.send_keys(value_to_set)
-                logging.info("Ustawiono Scaling dla grupy '%s' na %s", group, value_to_set)
+                logging.info("Set Scaling for '%s' to %s", group, value_to_set)
             return True
         except Exception as e:
-            logging.error("Błąd przy aktualizacji scaled values: %s", e)
+            logging.error("Error updating scaled values: %s", e)
             return False
 
     def update_sales_channels_selection(self):
         try:
-            logging.info("Aktualizuję wybór Sales Channels.")
+            logging.info("Updating Sales Channels selection.")
             container = WebDriverWait(self.driver, 20).until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, "div.sw-product-category-form__visibility_field"))
             )
-
             actions = ActionChains(self.driver)
             while True:
                 selected_items = container.find_elements(
@@ -1037,19 +1117,18 @@ class ShopUploader:
                         remove_button = item.find_element(By.CSS_SELECTOR, "button.sw-label__dismiss")
                         self.driver.execute_script("arguments[0].scrollIntoView(true);", remove_button)
                         remove_button.click()
-                        logging.info("Usunięto wybrany kanał.")
+                        logging.info("Removed selected channel.")
                         time.sleep(0.2)
                     except Exception as e:
-                        logging.error("Błąd przy usuwaniu kanału: %s", e)
-            logging.info("Lista wybranych kanałów została wyczyszczona.")
-
+                        logging.error("Error removing channel: %s", e)
+            logging.info("Cleared all selected channels.")
 
             expand_button = container.find_element(
                 By.CSS_SELECTOR, "div.sw-select__selection-indicators span.sw-select__select-indicator-expand"
             )
             self.driver.execute_script("arguments[0].scrollIntoView(true);", expand_button)
             self.driver.execute_script("arguments[0].click();", expand_button)
-            logging.info("Rozwinięto listę Sales Channels.")
+            logging.info("Expanded Sales Channels list.")
             result_list = WebDriverWait(self.driver, 20).until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, "div.sw-select-result-list__content"))
             )
@@ -1066,22 +1145,22 @@ class ShopUploader:
                 )
                 self.driver.execute_script("arguments[0].scrollIntoView(true);", option)
                 self.driver.execute_script("arguments[0].click();", option)
-                logging.info("Kliknięto opcję %s", sel)
+                logging.info("Clicked option %s", sel)
                 time.sleep(0.2)
             return True
         except Exception as e:
-            logging.error("Błąd przy aktualizacji Sales Channels: %s", e)
+            logging.error("Error updating Sales Channels: %s", e)
             return False
 
     def save_and_change_language(self, lang):
         try:
-            logging.info("Otwieram menu wyboru języka.")
+            logging.info("Opening language switch menu.")
             language_switch = WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "div.sw-language-switch div.sw-select__selection"))
             )
             self.driver.execute_script("arguments[0].scrollIntoView(true);", language_switch)
             self.driver.execute_script("arguments[0].click();", language_switch)
-            logging.info("Menu wyboru języka otwarte.")
+            logging.info("Language switch menu opened.")
             if lang.upper() == "EN":
                 selector = "//li[contains(@class, 'sw-select-result') and .//div[normalize-space(text())='English']]"
                 option = WebDriverWait(self.driver, 10).until(
@@ -1098,23 +1177,23 @@ class ShopUploader:
                     EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
                 )
             else:
-                logging.error("Nieznany język: %s", lang)
+                logging.error("Unknown language: %s", lang)
                 return False
             self.driver.execute_script("arguments[0].scrollIntoView(true);", option)
             self.driver.execute_script("arguments[0].click();", option)
-            logging.info("Wybrano język: %s", lang)
+            logging.info("Selected language: %s", lang)
             try:
                 modal_save_button = WebDriverWait(self.driver, 5).until(
                     EC.element_to_be_clickable((By.ID, "sw-language-switch-save-changes-button"))
                 )
                 self.driver.execute_script("arguments[0].scrollIntoView(true);", modal_save_button)
                 self.driver.execute_script("arguments[0].click();", modal_save_button)
-                logging.info("Kliknięto przycisk Save w modalu.")
-            except Exception as modal_error:
-                logging.info("Modal o niezapisanych zmianach nie pojawił się lub nie był potrzebny")
+                logging.info("Clicked Save button in modal.")
+            except Exception:
+                logging.info("No save-changes modal appeared or was not needed.")
             return True
         except Exception as e:
-            logging.error("Błąd w funkcji save_and_change_language: %s", e)
+            logging.error("Error in save_and_change_language: %s", e)
             return False
 
     def update_translated_text(self, product_data, lang):
@@ -1130,10 +1209,10 @@ class ShopUploader:
                 new_name = product_data.get("titel_FRA", "")
                 new_desc = product_data.get("beschreibung_fr", "")
             else:
-                logging.error("Nieznany język: %s", lang)
+                logging.error("Unknown language: %s", lang)
                 return False
             name_field.send_keys(new_name)
-            logging.info("Ustawiono Name na: %s", new_name)
+            logging.info("Set Name to: %s", new_name)
             code_button = WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((
                     By.XPATH, "//div[contains(@class, 'sw-text-editor-toolbar-button__icon') and .//span[contains(@class, 'icon--regular-code-xs')]]"
@@ -1141,17 +1220,17 @@ class ShopUploader:
             )
             if "is--active" not in code_button.get_attribute("class"):
                 self.driver.execute_script("arguments[0].click();", code_button)
-                logging.info("Przełączono edytor na tryb kodu.")
+                logging.info("Switched editor to code mode.")
             else:
-                logging.info("Edytor już jest w trybie kodu.")
+                logging.info("Editor already in code mode.")
             editor_div = WebDriverWait(self.driver, 20).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div.sw-code-editor__editor.ace_editor"))
             )
             self.driver.execute_script("ace.edit(arguments[0]).setValue(arguments[1]);", editor_div, new_desc)
-            logging.info("Ustawiono Description dla języka %s.", lang)
+            logging.info("Set Description for language %s.", lang)
             return True
         except Exception as e:
-            logging.error("Błąd przy aktualizacji tłumaczonego tekstu: %s", e)
+            logging.error("Error updating translated text: %s", e)
             return False
 
     def search_product(self, product_data):
@@ -1162,10 +1241,10 @@ class ShopUploader:
             search_input.clear()
             artikelnummer = product_data.get("artikelnummer", "")
             if not artikelnummer:
-                logging.error("Brak numeru artykułu w product_data.")
+                logging.error("No article number in product_data.")
                 return False
             search_input.send_keys(artikelnummer)
-            logging.info("Wpisano numer artykułu: %s", artikelnummer)
+            logging.info("Entered article number: %s", artikelnummer)
             time.sleep(1)
             result_link = WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((
@@ -1174,10 +1253,10 @@ class ShopUploader:
             )
             self.driver.execute_script("arguments[0].scrollIntoView(true);", result_link)
             self.driver.execute_script("arguments[0].click();", result_link)
-            logging.info("Kliknięto wynik wyszukiwania dla numeru artykułu: %s", artikelnummer)
+            logging.info("Clicked search result for article number: %s", artikelnummer)
             return True
         except Exception as e:
-            logging.error("Błąd przy wyszukiwaniu produktu: %s", e)
+            logging.error("Error searching for product: %s", e)
             return False
 
     def go_to_shop(self, product_data):
@@ -1251,10 +1330,10 @@ class Translator:
     def translate_text(self, text, target_lang):
         try:
             result = self.translator.translate_text(text, target_lang=target_lang, tag_handling="html")
-            logging.info("Tłumaczenie na %s zakończone.", target_lang)
+            logging.info("Translation to %s completed.", target_lang)
             return result.text
         except Exception as e:
-            logging.error("Błąd podczas tłumaczenia na %s: %s", target_lang, e)
+            logging.error("Error during translation to %s: %s", target_lang, e)
             return ""
 
     def translate_product(self, product_data):
@@ -1263,7 +1342,7 @@ class Translator:
             product_data["beschreibung_en"] = self.translate_text(description, "EN-GB")
             product_data["beschreibung_fr"] = self.translate_text(description, "FR")
         else:
-            logging.warning("Brak opisu produktu do tłumaczenia.")
+            logging.warning("No product description to translate.")
         return product_data
 
 
