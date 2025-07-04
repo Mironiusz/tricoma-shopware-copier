@@ -11,7 +11,7 @@ def save_files_content_to_txt(root_folder, output_file, ignore_dirs=None):
             dirs[:] = [d for d in dirs if d not in ignore_dirs]
 
             for file in files:
-                if file.endswith('.py'):
+                if file.endswith('.py') or file.endswith('.txt') or file.endswith('.json'):
                     file_path = os.path.join(root, file)
                     try:
                         with open(file_path, 'r', encoding='utf-8') as infile:

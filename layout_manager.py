@@ -1,70 +1,121 @@
-# tricoma-shopware-copier/layout_manager.py
+import logging
 import os
 import sys
-import logging
+import subprocess
+import shutil
 from selenium.webdriver.remote.webdriver import WebDriver
 
-# Domyślne proporcje – można nadpisać w config.json
+# Domyślne ustawienia – można nadpisać w config.json
 DEFAULTS = {
-    "browser_width_ratio": 0.80,   # 80 % szerokości ekranu
-    "browser_height_ratio": 1.00,  # 100 % wysokości
-    "term_width_ratio":    0.20,   # 20 % szerokości
-    "term_height_ratio":   0.50,   # 50 % wysokości
-    "min_browser_height":  950,    # px
-    "zoom_step_pct":       10      # o ile % przybliżać/oddalać jednorazowo
+    # Rozmiar i pozycja okna przeglądarki (w pikselach)
+    "browser_width_px":    1750,
+    "browser_height_px":   950,
+    "browser_pos_x":       0,
+    "browser_pos_y":       0,
+    # Zoom dla karty Tricoma (%)
+    "tricoma_zoom_pct":    100,
+    # Rozmiar i pozycja terminala (w pikselach)
+    "term_width_px":       640,
+    "term_height_px":      480,
+    "term_pos_x":          1750,
+    "term_pos_y":          0
 }
 
-def _get_screen_size(driver: WebDriver) -> tuple[int, int]:
-    """Pobiera dostępną rozdzielczość ekranu poprzez JS (działa we wszystkich
-    nowoczesnych przeglądarkach)."""
-    width  = driver.execute_script("return screen.availWidth;")
-    height = driver.execute_script("return screen.availHeight;")
-    return int(width), int(height)
 
-def _apply_browser_zoom(driver: WebDriver, min_height: int, step: int = 10):
-    """Zmniejsza zoom („ctrl -”) aż do uzyskania co najmniej min_height px."""
-    current_zoom = 100  # zaczynamy od 100 %
-    inner_h = driver.execute_script("return window.innerHeight;")
-    while inner_h < min_height and current_zoom > 50:
-        current_zoom -= step
-        driver.execute_script(
-            "document.body.style.zoom = arguments[0] + '%';", current_zoom
-        )
-        inner_h = driver.execute_script("return window.innerHeight;")
-        logging.info(
-            "Zmniejszono zoom do %s %% → wysokość okna: %s px", current_zoom, inner_h
-        )
-
-def _resize_terminal(width_ratio: float, height_ratio: float) -> None:
-    """Ustawia rozmiar terminala (nie pozycję). Działa w Windows i *BSD/POSIX."""
+def _resize_and_position_terminal(px_w: int, px_h: int,
+                                  pos_x: int, pos_y: int) -> None:
+    """
+    Ustawia pozycję i rozmiar fizycznego okna terminala.
+    Działa na Windows (WinAPI), macOS (AppleScript) i Linux/X11 (wmctrl).
+    """
     try:
-        # przybliżenie – zakładamy znak ≈ 8×16 px (monospace)
-        import shutil
-        cols_total, lines_total = shutil.get_terminal_size()
-        cols  = max(20, int(cols_total * width_ratio))
-        lines = max(10, int(lines_total * height_ratio))
-        if os.name == "nt":  # Windows -> komenda MODE
-            os.system(f"mode con: cols={cols} lines={lines}")
-        else:                # ANSI escape sequence (xterm, iTerm2, gnome-terminal…)
-            sys.stdout.write(f"\x1b[8;{lines};{cols}t")
-            sys.stdout.flush()
+        if os.name == "nt":
+            import ctypes
+            from ctypes import wintypes
+            user32 = ctypes.windll.user32
+            kernel32 = ctypes.windll.kernel32
+            # Pobranie tytułu консoli, aby znaleźć okno
+            buf = ctypes.create_unicode_buffer(512)
+            kernel32.GetConsoleTitleW(buf, ctypes.sizeof(buf))
+            target = buf.value
+            # Enumeracja wszystkich widocznych окien
+            EnumWindows = user32.EnumWindows
+            EnumProc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+            GetText = user32.GetWindowTextW
+            GetLen = user32.GetWindowTextLengthW
+            IsVis = user32.IsWindowVisible
+            hwnds = []
+            def enum_win(hwnd, lparam):
+                if not IsVis(hwnd): return True
+                length = GetLen(hwnd)
+                if length == 0: return True
+                buf2 = ctypes.create_unicode_buffer(length+1)
+                GetText(hwnd, buf2, length+1)
+                if buf2.value == target:
+                    hwnds.append(hwnd)
+                    return False
+                return True
+            EnumWindows(EnumProc(enum_win), 0)
+            hwnd = hwnds[0] if hwnds else kernel32.GetConsoleWindow()
+            if hwnd:
+                user32.MoveWindow(hwnd, pos_x, pos_y, px_w, px_h, True)
+                logging.info("Terminal ustawiony na %dx%d @(%d,%d)", px_w, px_h, pos_x, pos_y)
+            else:
+                logging.warning("Nie znaleziono okna terminala.")
+        elif sys.platform == "darwin":
+            applescript = (
+                'tell application "System Events" to tell (first process whose frontmost is true) '
+                f'set position of front window to {{{pos_x}, {pos_y}}} '
+                f'set size of front window to {{{px_w}, {px_h}}}'
+            )
+            subprocess.run(["osascript", "-e", applescript], check=False)
+        else:
+            if shutil.which("wmctrl"):
+                geom = f"0,{pos_x},{pos_y},{px_w},{px_h}"
+                subprocess.run(["wmctrl", "-r", ":ACTIVE:", "-e", geom], check=False)
+            else:
+                logging.warning("Brak narzędzia wmctrl – nie zmieniono terminala.")
     except Exception as e:
-        logging.warning("Nie udało się zmienić rozmiaru terminala: %s", e)
+        logging.warning("Błąd przy ustawianiu terminala: %s", e)
+
 
 def setup_layout(driver: WebDriver, cfg: dict | None = None) -> None:
-    """Główna funkcja – ustawia wymiary przeglądarki i terminala."""
-    cfg = {**DEFAULTS, **(cfg or {})}           # mergujemy z domyślnymi
-    scr_w, scr_h = _get_screen_size(driver)
+    """
+    Ustawia wymiary i pozycje okien przeglądarki oraz terminala
+    zgodnie z wartościami w config.json.
+    """
+    # scalanie z DEFAULTS
+    cfg = {**DEFAULTS, **(cfg or {})}
 
-    # --- PRZEGLĄDARKA ---
-    new_w = int(scr_w * cfg["browser_width_ratio"])
-    new_h = int(scr_h * cfg["browser_height_ratio"])
-    driver.set_window_position(0, 0)
-    driver.set_window_size(new_w, new_h)
-    logging.info("Okno przeglądarki ustawione na %s × %s px", new_w, new_h)
+    # --- Ustaw okno przeglądarki ---
+    bw = cfg.get("browser_width_px")
+    bh = cfg.get("browser_height_px")
+    bx = cfg.get("browser_pos_x")
+    by = cfg.get("browser_pos_y")
+    driver.set_window_position(bx, by)
+    driver.set_window_size(bw, bh)
+    logging.info("Przeglądarka ustawiona na %dx%d @(%d,%d)", bw, bh, bx, by)
 
-    # --- Zoom, jeśli < min_browser_height ---
-    _apply_browser_zoom(driver, cfg["min_browser_height"], cfg["zoom_step_pct"])
+    # --- Zoom na karcie Tricoma ---
+    zoom_pct = cfg.get("tricoma_zoom_pct", 100)
+    for handle in driver.window_handles:
+        driver.switch_to.window(handle)
+        try:
+            url = driver.current_url
+        except Exception:
+            url = ""
+        if "tricoma" in url:
+            driver.execute_script("document.body.style.zoom = arguments[0] + '%';", zoom_pct)
+            logging.info("Ustawiono zoom Tricoma na %s%% (URL: %s)", zoom_pct, url)
+            break
+    # wróć na pierwszą zakładkę
+    driver.switch_to.window(driver.window_handles[0])
 
-    # --- TERMINAL ---
-    _resize_terminal(cfg["term_width_ratio"], cfg["term_height_ratio"])
+    # --- Ustaw okno terminala ---
+    tw = cfg.get("term_width_px")
+    th = cfg.get("term_height_px")
+    tx = cfg.get("term_pos_x")
+    ty = cfg.get("term_pos_y")
+    _resize_and_position_terminal(tw, th, tx, ty)
+
+# koniec pliku
